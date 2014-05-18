@@ -1,20 +1,61 @@
-# Reproducible Research: Peer Assessment 1
+========================================
+```{r}
+activity<-read.csv("activity.csv")
+  library(plyr)
+  ##using plyr to aggregate steps taken each day
+  sumOfSteps<-ddply(activity, .(date), summarize, stepSum=sum(steps))
+  hist(sumOfSteps$stepSum, xlab="Total steps taken per day", ylab="Frequency", main="Histogram of total number of steps taken each day", col="red")
 
+  ##computing mean and median
+  mean(sumOfSteps$stepSum, na.rm=TRUE)
+  median(sumOfSteps$stepSum, na.rm=TRUE)
 
-## Loading and preprocessing the data
+  averagedSteps<-ddply(activity, .(interval), summarize, meanStepsPerInterval=mean(steps, na.rm=TRUE))
+  plot(averagedSteps$interval, averagedSteps$meanStepsPerInterval, type="l", xlab="Interval", ylab="Average Steps Per Interval", main="Daily average of steps per interval")
+  
+  ##finding out which interval has max steps on average
+  maxStepsInterval<-averagedSteps[which.max(averagedSteps[,2]), 1]
+  maxStepsInterval
 
+  ##fixing missing values by replacing NAs with mean steps for that interval
+  numberOfMissingValues<-sum(is.na(activity$steps))
+  len<-length(activity$steps)
+  adjustedActivity<-activity
+  
+  for(i in 1:len)
+  {
+    if(is.na(activity[i, 1]))
+    {
+      interval<-activity[i, 3]
+      meanInterval<-averagedSteps[averagedSteps$interval==interval,2]
+      adjustedActivity[i, 1]<-meanInterval
+      
+    }
+    
+  }
+  sumOfStepsAdjusted<-ddply(adjustedActivity, .(date), summarize, stepSum=sum(steps))
+  hist(sumOfStepsAdjusted$stepSum, xlab="Total steps taken per day (adjusted)", ylab="Frequency", main="Adjusted histogram of total number of steps taken each day", col="red")
 
-
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
+  ##calculating adjusted mean and median
+  mean(sumOfStepsAdjusted$stepSum, na.rm=TRUE)
+  median(sumOfStepsAdjusted$stepSum, na.rm=TRUE)
+  
+  ##adding a factor to store if the day is a weekday or weekend
+  dayOfWeekVector<-factor(levels=c("weekday", "weekend"))
+  for(i in 1:len)
+  {
+    dayOfWeek<-weekdays(as.Date(adjustedActivity[i, 2]))
+    if(dayOfWeek=="Monday"|dayOfWeek=="Tuesday"|dayOfWeek=="Wednesday"|dayOfWeek=="Thursday"|dayOfWeek=="Friday")
+    {
+      dayOfWeekVector[length(dayOfWeekVector)+1]<-as.factor(as.character("weekday"))
+    }
+    else
+    {
+      dayOfWeekVector[length(dayOfWeekVector)+1]<-as.factor(as.character("weekend"))
+    }
+  }
+  adjustedActivity$DayOfWeek<-as.factor(dayOfWeekVector)                                        
+  adjustedAverageSteps<-ddply(adjustedActivity, .(interval, DayOfWeek), summarize, meanStepsPerInterval=mean(steps, na.rm=TRUE))
+  library(lattice)
+  xyplot(meanStepsPerInterval~interval|DayOfWeek, data = adjustedAverageSteps, layout=c(1,2), type="l")
+```
